@@ -10,7 +10,20 @@
     const fallbackIds = new Set();
     nodes.forEach(n => { if (n.on_error) fallbackIds.add(n.on_error); });
 
-    const active = nodes.filter(n => !fallbackIds.has(n.id));
+    // Find all nodes transitively dependent on fallback nodes (the error recovery path)
+    const fallbackPath = new Set(fallbackIds);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      nodes.forEach(n => {
+        if (!fallbackPath.has(n.id) && (n.depends_on || []).some(dep => fallbackPath.has(dep))) {
+          fallbackPath.add(n.id);
+          changed = true;
+        }
+      });
+    }
+
+    const active = nodes.filter(n => !fallbackPath.has(n.id));
     const nodeMap = new Map(active.map(n => [n.id, n]));
     const inDegree = new Map(active.map(n => [n.id, 0]));
     const children = new Map(active.map(n => [n.id, []]));
@@ -39,9 +52,34 @@
       queue = next;
     }
 
-    const fallbackNodes = nodes.filter(n => fallbackIds.has(n.id));
-    if (fallbackNodes.length > 0) {
-      levels.push(fallbackNodes);
+    // Topological sort for the fallback path (fallback nodes + their dependents)
+    const fallbackGroup = nodes.filter(n => fallbackPath.has(n.id));
+    if (fallbackGroup.length > 0) {
+      const fbNodeMap = new Map(fallbackGroup.map(n => [n.id, n]));
+      const fbInDegree = new Map(fallbackGroup.map(n => [n.id, 0]));
+      const fbChildren = new Map(fallbackGroup.map(n => [n.id, []]));
+
+      fallbackGroup.forEach(n => {
+        (n.depends_on || []).forEach(dep => {
+          if (fbNodeMap.has(dep)) {
+            fbInDegree.set(n.id, (fbInDegree.get(n.id) || 0) + 1);
+            fbChildren.get(dep).push(n.id);
+          }
+        });
+      });
+
+      let fbQueue = [...fbInDegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
+      while (fbQueue.length > 0) {
+        levels.push(fbQueue.map(id => fbNodeMap.get(id)));
+        const next = [];
+        fbQueue.forEach(id => {
+          (fbChildren.get(id) || []).forEach(child => {
+            fbInDegree.set(child, fbInDegree.get(child) - 1);
+            if (fbInDegree.get(child) === 0) next.push(child);
+          });
+        });
+        fbQueue = next;
+      }
     }
 
     return levels;
@@ -54,6 +92,19 @@
     const fallbackIds = new Set();
     nodes.forEach(n => { if (n.on_error) fallbackIds.add(n.on_error); });
 
+    // Compute full fallback path (fallback nodes + their dependents)
+    const fallbackPath = new Set(fallbackIds);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      nodes.forEach(n => {
+        if (!fallbackPath.has(n.id) && (n.depends_on || []).some(dep => fallbackPath.has(dep))) {
+          fallbackPath.add(n.id);
+          changed = true;
+        }
+      });
+    }
+
     const NODE_W = 180;
     const NODE_H = 50;
     const GAP_X = 250;
@@ -65,7 +116,7 @@
     const totalHeight = Math.max(...levels.map(l => l.length)) * GAP_Y;
 
     levels.forEach((level, levelIdx) => {
-      const isFallbackLevel = level.some(n => fallbackIds.has(n.id));
+      const isFallbackLevel = level.some(n => fallbackPath.has(n.id));
       const levelHeight = level.length * GAP_Y;
       const offsetY = (totalHeight - levelHeight) / 2;
 
