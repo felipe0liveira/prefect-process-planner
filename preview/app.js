@@ -79,6 +79,9 @@
         if (fallbackIds.has(node.id)) {
           fill = '#b91c1c';
           stroke = '#ef4444';
+        } else if (node.tool === 'check_condition') {
+          fill = '#7c3aed';
+          stroke = '#a78bfa';
         } else if (node.on_error) {
           fill = '#d97706';
           stroke = '#f59e0b';

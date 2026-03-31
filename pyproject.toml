@@ -10,5 +10,6 @@ dependencies = [
     "httpx>=0.28.1",
     "prefect>=3.6.24",
     "pydantic>=2.12.5",
+    "simpleeval>=1.0.1",
     "uvicorn>=0.42.0",
 ]

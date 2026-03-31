@@ -1,4 +1,4 @@
-.PHONY: help setup clean serve example-simple example-parallel example-fanout example-create example-complex example-fallback example-cascade-skip
+.PHONY: help setup clean serve example-simple example-parallel example-fanout example-create example-complex example-fallback example-cascade-skip example-logic
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -37,3 +37,6 @@ example-fallback: ## Fallback: try to get user 999 (will fail), report error on 
 
 example-cascade-skip: ## Cascade skip: fetch post 2 from unreliable service (fails), then get comments (skipped)
 	uv run python -m src.main "Busque o post 2 usando o serviço instável, depois busque os comentários desse post, e também busque o usuário 1 em paralelo. Se der erro, reporte o erro"
+
+example-logic: ## Logic node: list posts for user 1, error if more than 10
+	uv run python -m src.main "Liste os posts do usuário 1 e verifique se tem mais de 10 posts. Se tiver, reporte o erro"

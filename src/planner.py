@@ -49,6 +49,13 @@ You MUST return ONLY a valid JSON object (no markdown, no extra text) with this 
 7. The graph must be a DAG (no cycles).
 8. Maximize parallelism: nodes that can run independently should NOT depend on each other.
 9. Return ONLY the JSON — no markdown fences, no explanatory text.
+10. When the user asks to validate, verify, or check a condition on the result of a
+    previous step, use the "check_condition" tool. The variable names in the expression
+    MUST match the IDs of the nodes listed in depends_on. The orchestrator injects
+    dependency results as variables automatically at runtime. Examples:
+    - "len(list_posts) > 10" (where "list_posts" is a depends_on node ID)
+    - "get_user['name'] == 'Leanne Graham'" (indexing into a dict result)
+    Combine with on_error + report_error to handle condition failures.
 """
 
 

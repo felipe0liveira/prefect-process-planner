@@ -117,8 +117,18 @@ def run_dag(plan: ExecutionPlan) -> dict[str, Any]:
 
         futures = {}
         for node in runnables:
+            submit_node = node
+            if node.tool == "check_condition":
+                dep_results = {
+                    dep: results[dep]
+                    for dep in node.depends_on
+                    if dep in results
+                }
+                submit_node = node.model_copy(
+                    update={"params": {**node.params, **dep_results}}
+                )
             print(f"  -> Submitting: {node.id} ({node.tool})")
-            future = execute_node.submit(node)
+            future = execute_node.submit(submit_node)
             futures[node.id] = future
 
         for future in as_completed(futures.values()):

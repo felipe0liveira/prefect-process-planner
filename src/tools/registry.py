@@ -12,6 +12,7 @@ from src.tools.jsonplaceholder import (
     report_error,
     unreliable_get_post,
 )
+from src.tools.logic import check_condition
 
 TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     "get_posts": get_posts,
@@ -23,6 +24,7 @@ TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     "get_todos": get_todos,
     "report_error": report_error,
     "unreliable_get_post": unreliable_get_post,
+    "check_condition": check_condition,
 }
 
 TOOL_SCHEMAS: list[dict] = [
@@ -116,6 +118,32 @@ TOOL_SCHEMAS: list[dict] = [
                 "description": "The ID of the post to retrieve.",
                 "required": True,
             }
+        },
+    },
+    {
+        "name": "check_condition",
+        "description": (
+            "Evaluate a logical condition against the results of dependency nodes. "
+            "The results of all depends_on nodes are automatically injected as "
+            "variables at runtime — use the dependency node IDs as variable names "
+            "in the expression. If the condition evaluates to false, raises an error "
+            "(use on_error for fallback). "
+            "Supports: len(), comparisons (>, <, ==, !=, >=, <=), 'in', indexing, arithmetic."
+        ),
+        "parameters": {
+            "expression": {
+                "type": "string",
+                "description": (
+                    "Python-like expression to evaluate. Variable names must match "
+                    "depends_on node IDs. E.g. 'len(list_posts) <= 10'"
+                ),
+                "required": True,
+            },
+            "error_message": {
+                "type": "string",
+                "description": "Error message to raise if the condition is false.",
+                "required": True,
+            },
         },
     },
     {
