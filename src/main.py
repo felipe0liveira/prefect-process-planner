@@ -1,8 +1,10 @@
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.models.dag import ExecutionPlan
 from src.orchestrator import run_dag
 from src.planner import generate_plan
 
@@ -26,19 +28,10 @@ def _build_run_dir() -> Path:
     return run_dir
 
 
-def main() -> None:
-    if len(sys.argv) < 2:
-        print("Usage: uv run python -m src.main '<prompt>'")
-        print()
-        print('Example: uv run python -m src.main "Get user 1 data, '
-              'then list their posts and todos in parallel"')
-        sys.exit(1)
-
-    user_prompt = " ".join(sys.argv[1:])
-    run_dir = _build_run_dir()
-
+def _generate(user_prompt: str, run_dir: Path) -> ExecutionPlan:
+    """Generate a DAG from a prompt and save it to disk."""
     print("=" * 60)
-    print("STEP 1: Generating execution plan with Gemini 2.5 Flash")
+    print("Generating execution plan with Gemini 2.5 Flash")
     print("=" * 60)
     print(f"Prompt: {user_prompt}\n")
 
@@ -48,16 +41,22 @@ def main() -> None:
     print("Generated DAG:")
     print(json.dumps(dag_data, indent=2, ensure_ascii=False))
     _save_json(dag_data, run_dir / "dag.json")
+    return plan
+
+
+def _execute(plan: ExecutionPlan, run_dir: Path, user_prompt: str | None = None) -> None:
+    """Execute a DAG and save results to disk."""
+    dag_data = plan.model_dump()
 
     print()
     print("=" * 60)
-    print("STEP 2: Executing DAG with Prefect orchestrator")
+    print("Executing DAG with Prefect orchestrator")
     print("=" * 60)
 
     results = run_dag(plan, run_dir=run_dir)
 
     flow_log = {
-        "prompt": user_prompt,
+        "prompt": user_prompt or "(executed from existing dag.json)",
         "dag": dag_data,
         "results": {
             node_id: _summarize(result) for node_id, result in results.items()
@@ -87,6 +86,56 @@ def main() -> None:
 
     print()
     print(f"All outputs saved to: {run_dir}/")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Prefect Process Planner — AI-driven workflow orchestration",
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--plan",
+        metavar="PROMPT",
+        help="generate a DAG from a prompt without executing it",
+    )
+    group.add_argument(
+        "--execute",
+        metavar="RUN_DIR",
+        help="execute an existing dag.json from a run directory (name or path)",
+    )
+    group.add_argument(
+        "prompt",
+        nargs="?",
+        help="generate and execute a DAG in one step",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = _parse_args()
+
+    if args.plan:
+        run_dir = _build_run_dir()
+        _generate(args.plan, run_dir)
+        print(f"\nPlan saved to: {run_dir}/dag.json")
+
+    elif args.execute:
+        run_dir = Path(args.execute)
+        if not run_dir.is_absolute():
+            run_dir = DATA_DIR / run_dir
+        dag_path = run_dir / "dag.json"
+        if not dag_path.exists():
+            print(f"Error: {dag_path} not found", file=sys.stderr)
+            sys.exit(1)
+        dag_data = json.loads(dag_path.read_text(encoding="utf-8"))
+        plan = ExecutionPlan.model_validate(dag_data)
+        _execute(plan, run_dir)
+
+    else:
+        user_prompt = args.prompt
+        run_dir = _build_run_dir()
+        plan = _generate(user_prompt, run_dir)
+        _execute(plan, run_dir, user_prompt)
 
 
 def _summarize(result: object) -> object:
