@@ -22,6 +22,10 @@
         <select id="run-select" class="bg-gray-800 border border-gray-700 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Loading runs...</option>
         </select>
+        <div id="view-toggle" class="flex items-center bg-gray-800 border border-gray-700 rounded-md overflow-hidden text-sm">
+          <button data-view="plan" class="px-3 py-1.5 transition-colors text-gray-400 hover:text-gray-200">Plan</button>
+          <button data-view="result" class="px-3 py-1.5 transition-colors bg-blue-600 text-white">Result</button>
+        </div>
         <button id="btn-refresh" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md px-3 py-1.5 text-sm transition-colors">
           Refresh
         </button>
@@ -64,6 +68,8 @@
   const LogicFlow = Core.default;
 
   let lf = null;
+  let currentData = null;
+  let viewMode = 'result';
 
   // -- Topological sort (same algorithm as the Python orchestrator) --
   function topologicalLevels(nodes) {
@@ -225,15 +231,16 @@
 
   // -- Render --
   function renderDag(data) {
+    currentData = data;
     const { run_id, dag, results } = data;
 
-    // Update info bar
     document.getElementById('dag-info').classList.remove('hidden');
     document.getElementById('info-run').textContent = run_id;
     document.getElementById('info-desc').textContent = dag.description || '-';
     document.getElementById('info-nodes').textContent = (dag.nodes || []).length;
 
-    const graphData = buildGraphData(dag, results);
+    const effectiveResults = viewMode === 'result' ? results : null;
+    const graphData = buildGraphData(dag, effectiveResults);
 
     if (lf) {
       lf.render(graphData);
@@ -329,6 +336,21 @@
   });
 
   document.getElementById('btn-refresh').addEventListener('click', loadRuns);
+
+  document.getElementById('view-toggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-view]');
+    if (!btn || btn.dataset.view === viewMode) return;
+
+    viewMode = btn.dataset.view;
+    document.querySelectorAll('#view-toggle [data-view]').forEach(b => {
+      b.classList.remove('bg-blue-600', 'text-white');
+      b.classList.add('text-gray-400', 'hover:text-gray-200');
+    });
+    btn.classList.remove('text-gray-400', 'hover:text-gray-200');
+    btn.classList.add('bg-blue-600', 'text-white');
+
+    if (currentData) renderDag(currentData);
+  });
 
   // -- Init --
   loadRuns();
