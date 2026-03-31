@@ -113,6 +113,7 @@
     const lfNodes = [];
     const lfEdges = [];
 
+    const nodePositions = new Map();
     const totalHeight = Math.max(...levels.map(l => l.length)) * GAP_Y;
 
     levels.forEach((level, levelIdx) => {
@@ -122,7 +123,25 @@
 
       level.forEach((node, nodeIdx) => {
         const x = 150 + levelIdx * GAP_X;
-        const y = 80 + offsetY + nodeIdx * GAP_Y + (isFallbackLevel ? GAP_Y : 0);
+
+        // Try to align with parent nodes when possible
+        const parentYs = (node.depends_on || [])
+          .filter(dep => nodePositions.has(dep))
+          .map(dep => nodePositions.get(dep));
+
+        let y;
+        if (parentYs.length > 0 && level.length === 1) {
+          // Single node in level: place at average of parents
+          y = parentYs.reduce((a, b) => a + b, 0) / parentYs.length;
+        } else {
+          y = 80 + offsetY + nodeIdx * GAP_Y;
+        }
+
+        if (isFallbackLevel) {
+          y += GAP_Y;
+        }
+
+        nodePositions.set(node.id, y);
 
         let fill = '#2563eb';
         let stroke = '#3b82f6';
