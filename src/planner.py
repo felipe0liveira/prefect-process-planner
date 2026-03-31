@@ -74,7 +74,7 @@ def generate_plan(user_prompt: str) -> ExecutionPlan:
         user_prompt,
         generation_config={
             "temperature": 0.1,
-            "max_output_tokens": 4096,
+            "max_output_tokens": 8192,
             "response_mime_type": "application/json",
         },
     )
