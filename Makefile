@@ -1,4 +1,4 @@
-.PHONY: help setup clean preview example-simple example-parallel example-fanout example-create example-complex example-fallback example-cascade-skip example-logic
+.PHONY: help setup clean preview
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
