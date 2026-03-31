@@ -1,69 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DAG Visualizer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@logicflow/core@2.1.11/dist/index.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@logicflow/core@2.1.11/dist/index.min.js"></script>
-  <style>
-    #canvas { width: 100%; height: calc(100vh - 180px); }
-    .lf-node-text { font-size: 12px !important; }
-  </style>
-</head>
-<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
-
-  <!-- Header -->
-  <header class="border-b border-gray-800 px-6 py-4">
-    <div class="flex items-center justify-between max-w-7xl mx-auto">
-      <h1 class="text-xl font-semibold tracking-tight">DAG Visualizer</h1>
-      <div class="flex items-center gap-4">
-        <select id="run-select" class="bg-gray-800 border border-gray-700 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Loading runs...</option>
-        </select>
-        <div id="view-toggle" class="flex items-center bg-gray-800 border border-gray-700 rounded-md overflow-hidden text-sm">
-          <button data-view="plan" class="px-3 py-1.5 transition-colors text-gray-400 hover:text-gray-200">Plan</button>
-          <button data-view="result" class="px-3 py-1.5 transition-colors bg-blue-600 text-white">Result</button>
-        </div>
-        <button id="btn-refresh" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md px-3 py-1.5 text-sm transition-colors">
-          Refresh
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- DAG info bar -->
-  <div id="dag-info" class="border-b border-gray-800 px-6 py-3 hidden">
-    <div class="max-w-7xl mx-auto flex items-center gap-6 text-sm">
-      <span class="text-gray-400">Run: <span id="info-run" class="text-gray-200 font-mono"></span></span>
-      <span class="text-gray-400">Description: <span id="info-desc" class="text-gray-200"></span></span>
-      <span class="text-gray-400">Nodes: <span id="info-nodes" class="text-gray-200"></span></span>
-    </div>
-  </div>
-
-  <!-- Legend -->
-  <div class="px-6 py-2 border-b border-gray-800">
-    <div class="max-w-7xl mx-auto flex items-center gap-6 text-xs text-gray-400">
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 inline-block"></span> Normal</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-600 inline-block"></span> Has fallback</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-700 inline-block"></span> Fallback node</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-600 inline-block"></span> Completed</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-600 inline-block"></span> Skipped</span>
-      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Failed</span>
-      <span class="flex items-center gap-1.5"><span class="border-t-2 border-dashed border-red-400 w-4 inline-block"></span> on_error edge</span>
-    </div>
-  </div>
-
-  <!-- Canvas -->
-  <main class="flex-1 px-6 py-4">
-    <div id="canvas" class="rounded-lg border border-gray-800 bg-gray-900"></div>
-  </main>
-
-  <!-- Error -->
-  <div id="error-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-900/90 border border-red-700 text-red-200 px-6 py-3 rounded-lg text-sm max-w-lg text-center"></div>
-
-<script>
 (function () {
   const LogicFlow = Core.default;
 
@@ -71,7 +5,7 @@
   let currentData = null;
   let viewMode = 'result';
 
-  // -- Topological sort (same algorithm as the Python orchestrator) --
+  // -- Topological sort (Kahn's algorithm, mirrors the Python orchestrator) --
   function topologicalLevels(nodes) {
     const fallbackIds = new Set();
     nodes.forEach(n => { if (n.on_error) fallbackIds.add(n.on_error); });
@@ -105,7 +39,6 @@
       queue = next;
     }
 
-    // Place fallback nodes in a separate level at the bottom
     const fallbackNodes = nodes.filter(n => fallbackIds.has(n.id));
     if (fallbackNodes.length > 0) {
       levels.push(fallbackNodes);
@@ -129,7 +62,6 @@
     const lfNodes = [];
     const lfEdges = [];
 
-    // Position nodes by level
     const totalHeight = Math.max(...levels.map(l => l.length)) * GAP_Y;
 
     levels.forEach((level, levelIdx) => {
@@ -140,29 +72,28 @@
         const x = 150 + levelIdx * GAP_X;
         const y = 80 + offsetY + nodeIdx * GAP_Y;
 
-        let fill = '#2563eb';   // blue - normal
+        let fill = '#2563eb';
         let stroke = '#3b82f6';
-        let fontColor = '#ffffff';
+        const fontColor = '#ffffff';
 
         if (fallbackIds.has(node.id)) {
-          fill = '#b91c1c';     // red-700 - fallback node
+          fill = '#b91c1c';
           stroke = '#ef4444';
         } else if (node.on_error) {
-          fill = '#d97706';     // amber-600 - has fallback
+          fill = '#d97706';
           stroke = '#f59e0b';
         }
 
-        // Override with execution results
         if (results && results[node.id]) {
           const r = results[node.id];
           if (r._skipped) {
-            fill = '#4b5563';   // gray-600
+            fill = '#4b5563';
             stroke = '#6b7280';
           } else if (r._error) {
-            fill = '#dc2626';   // red-600
+            fill = '#dc2626';
             stroke = '#ef4444';
           } else {
-            fill = '#16a34a';   // green-600
+            fill = '#16a34a';
             stroke = '#22c55e';
           }
         }
@@ -178,50 +109,29 @@
           properties: {
             width: NODE_W,
             height: NODE_H,
-            style: {
-              fill,
-              stroke,
-              strokeWidth: 2,
-              radius: 8,
-            },
-            textStyle: {
-              color: fontColor,
-              fontSize: 11,
-            },
+            style: { fill, stroke, strokeWidth: 2, radius: 8 },
+            textStyle: { color: fontColor, fontSize: 11 },
           },
         });
       });
     });
 
-    // Build edges from depends_on
     nodes.forEach(node => {
       (node.depends_on || []).forEach(dep => {
         lfEdges.push({
           type: 'polyline',
           sourceNodeId: dep,
           targetNodeId: node.id,
-          properties: {
-            style: {
-              stroke: '#6b7280',
-              strokeWidth: 2,
-            },
-          },
+          properties: { style: { stroke: '#6b7280', strokeWidth: 2 } },
         });
       });
 
-      // on_error edges (dashed)
       if (node.on_error) {
         lfEdges.push({
           type: 'polyline',
           sourceNodeId: node.id,
           targetNodeId: node.on_error,
-          properties: {
-            style: {
-              stroke: '#f87171',
-              strokeWidth: 1.5,
-              strokeDasharray: '6 3',
-            },
-          },
+          properties: { style: { stroke: '#f87171', strokeWidth: 1.5, strokeDasharray: '6 3' } },
         });
       }
     });
@@ -257,23 +167,10 @@
         stopScrollGraph: false,
         adjustEdgeStartAndEnd: true,
         style: {
-          rect: {
-            width: 180,
-            height: 50,
-            radius: 8,
-          },
-          nodeText: {
-            fontSize: 11,
-            color: '#ffffff',
-            overflowMode: 'ellipsis',
-          },
-          polyline: {
-            stroke: '#6b7280',
-            strokeWidth: 2,
-          },
-          edgeText: {
-            fontSize: 10,
-          },
+          rect: { width: 180, height: 50, radius: 8 },
+          nodeText: { fontSize: 11, color: '#ffffff', overflowMode: 'ellipsis' },
+          polyline: { stroke: '#6b7280', strokeWidth: 2 },
+          edgeText: { fontSize: 10 },
         },
       });
       lf.render(graphData);
@@ -355,6 +252,3 @@
   // -- Init --
   loadRuns();
 })();
-</script>
-</body>
-</html>

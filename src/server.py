@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 DATA_DIR = Path("data")
-ROOT_DIR = Path(".")
+PREVIEW_DIR = Path("preview")
 
 app = FastAPI(title="DAG Visualizer")
 
@@ -92,6 +92,9 @@ def get_run(run_id: str) -> JSONResponse:
     })
 
 
+app.mount("/static", StaticFiles(directory=PREVIEW_DIR), name="static")
+
+
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse(ROOT_DIR / "index.html")
+    return FileResponse(PREVIEW_DIR / "index.html")
