@@ -65,12 +65,13 @@
     const totalHeight = Math.max(...levels.map(l => l.length)) * GAP_Y;
 
     levels.forEach((level, levelIdx) => {
+      const isFallbackLevel = level.some(n => fallbackIds.has(n.id));
       const levelHeight = level.length * GAP_Y;
       const offsetY = (totalHeight - levelHeight) / 2;
 
       level.forEach((node, nodeIdx) => {
         const x = 150 + levelIdx * GAP_X;
-        const y = 80 + offsetY + nodeIdx * GAP_Y;
+        const y = 80 + offsetY + nodeIdx * GAP_Y + (isFallbackLevel ? GAP_Y : 0);
 
         let fill = '#2563eb';
         let stroke = '#3b82f6';
