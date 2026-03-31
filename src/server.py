@@ -1,8 +1,9 @@
 import json
+import time
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 DATA_DIR = Path("data")
@@ -96,5 +97,8 @@ app.mount("/static", StaticFiles(directory=PREVIEW_DIR), name="static")
 
 
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(PREVIEW_DIR / "index.html")
+def index() -> HTMLResponse:
+    html = (PREVIEW_DIR / "index.html").read_text(encoding="utf-8")
+    cache_bust = int(time.time())
+    html = html.replace("/static/app.js", f"/static/app.js?v={cache_bust}")
+    return HTMLResponse(html)

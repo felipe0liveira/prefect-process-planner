@@ -10,6 +10,8 @@
   <style>
     #canvas { width: 100%; height: calc(100vh - 180px); }
     .lf-node-text { font-size: 12px !important; }
+    .lf-edge-text { fill: #dc2626 !important; font-size: 12px !important; font-weight: 500 !important; }
+    .lf-edge-text-bg { fill: #ffffff !important; stroke: transparent !important; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
@@ -23,8 +25,8 @@
           <option value="">Loading runs...</option>
         </select>
         <div id="view-toggle" class="flex items-center bg-gray-800 border border-gray-700 rounded-md overflow-hidden text-sm">
-          <button data-view="plan" class="px-3 py-1.5 transition-colors text-gray-400 hover:text-gray-200">Plan</button>
-          <button data-view="result" class="px-3 py-1.5 transition-colors bg-blue-600 text-white">Result</button>
+          <button data-view="plan" class="px-3 py-1.5 transition-colors bg-blue-600 text-white">Plan</button>
+          <button data-view="result" class="px-3 py-1.5 transition-colors text-gray-400 hover:text-gray-200">Result</button>
         </div>
         <button id="btn-refresh" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md px-3 py-1.5 text-sm transition-colors">
           Refresh

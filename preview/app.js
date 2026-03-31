@@ -3,7 +3,7 @@
 
   let lf = null;
   let currentData = null;
-  let viewMode = 'result';
+  let viewMode = 'plan';
 
   // -- Topological sort (Kahn's algorithm, mirrors the Python orchestrator) --
   function topologicalLevels(nodes) {
@@ -105,11 +105,11 @@
           type: 'rect',
           x,
           y,
-          text: label,
+          text: { x, y: y - 5, value: label },
           properties: {
             width: NODE_W,
             height: NODE_H,
-            style: { fill, stroke, strokeWidth: 2, radius: 8 },
+            style: { fill, stroke, strokeWidth: 2, radius: 8, fillOpacity: 0.8 },
             textStyle: { color: fontColor, fontSize: 11 },
           },
         });
@@ -131,7 +131,10 @@
           type: 'polyline',
           sourceNodeId: node.id,
           targetNodeId: node.on_error,
-          properties: { style: { stroke: '#f87171', strokeWidth: 1.5, strokeDasharray: '6 3' } },
+          text: 'on_error',
+          properties: {
+            style: { stroke: '#f87171', strokeWidth: 1.5, strokeDasharray: '6 3' },
+          },
         });
       }
     });
@@ -162,7 +165,7 @@
         edgeType: 'polyline',
         nodeTextEdit: false,
         edgeTextEdit: false,
-        isSilentMode: true,
+        isSilentMode: false,
         stopZoomGraph: false,
         stopScrollGraph: false,
         adjustEdgeStartAndEnd: true,
@@ -170,7 +173,7 @@
           rect: { width: 180, height: 50, radius: 8 },
           nodeText: { fontSize: 11, color: '#ffffff', overflowMode: 'ellipsis' },
           polyline: { stroke: '#6b7280', strokeWidth: 2 },
-          edgeText: { fontSize: 10 },
+          edgeText: { fontSize: 12, color: '#dc2626', background: { fill: '#ffffff', stroke: 'transparent' } },
         },
       });
       lf.render(graphData);
