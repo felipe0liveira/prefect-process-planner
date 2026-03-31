@@ -1,4 +1,4 @@
-.PHONY: help setup clean example-simple example-parallel example-fanout example-create example-complex example-fallback example-cascade-skip
+.PHONY: help setup clean serve example-simple example-parallel example-fanout example-create example-complex example-fallback example-cascade-skip
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -9,6 +9,9 @@ setup: ## Copy .env.example to .env and install dependencies
 
 clean: ## Remove all saved outputs from data/
 	rm -rf data/
+
+serve: ## Start local server to visualize DAGs at http://localhost:8080
+	uv run uvicorn src.server:app --reload --port 8080
 
 # ---------------------------------------------------------------------------
 # Examples

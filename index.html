@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAG Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@logicflow/core/dist/style/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@logicflow/core/dist/logic-flow.js"></script>
+  <style>
+    #canvas { width: 100%; height: calc(100vh - 180px); }
+    .lf-node-text { font-size: 12px !important; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 px-6 py-4">
+    <div class="flex items-center justify-between max-w-7xl mx-auto">
+      <h1 class="text-xl font-semibold tracking-tight">DAG Visualizer</h1>
+      <div class="flex items-center gap-4">
+        <select id="run-select" class="bg-gray-800 border border-gray-700 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Loading runs...</option>
+        </select>
+        <button id="btn-refresh" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md px-3 py-1.5 text-sm transition-colors">
+          Refresh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- DAG info bar -->
+  <div id="dag-info" class="border-b border-gray-800 px-6 py-3 hidden">
+    <div class="max-w-7xl mx-auto flex items-center gap-6 text-sm">
+      <span class="text-gray-400">Run: <span id="info-run" class="text-gray-200 font-mono"></span></span>
+      <span class="text-gray-400">Description: <span id="info-desc" class="text-gray-200"></span></span>
+      <span class="text-gray-400">Nodes: <span id="info-nodes" class="text-gray-200"></span></span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="px-6 py-2 border-b border-gray-800">
+    <div class="max-w-7xl mx-auto flex items-center gap-6 text-xs text-gray-400">
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 inline-block"></span> Normal</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-600 inline-block"></span> Has fallback</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-700 inline-block"></span> Fallback node</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-600 inline-block"></span> Completed</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-gray-600 inline-block"></span> Skipped</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500 inline-block"></span> Failed</span>
+      <span class="flex items-center gap-1.5"><span class="border-t-2 border-dashed border-red-400 w-4 inline-block"></span> on_error edge</span>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <main class="flex-1 px-6 py-4">
+    <div id="canvas" class="rounded-lg border border-gray-800 bg-gray-900"></div>
+  </main>
+
+  <!-- Error -->
+  <div id="error-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-900/90 border border-red-700 text-red-200 px-6 py-3 rounded-lg text-sm max-w-lg text-center"></div>
+
+<script>
+(function () {
+  const { LogicFlow } = window.LogicFlow;
+
+  let lf = null;
+
+  // -- Topological sort (same algorithm as the Python orchestrator) --
+  function topologicalLevels(nodes) {
+    const fallbackIds = new Set();
+    nodes.forEach(n => { if (n.on_error) fallbackIds.add(n.on_error); });
+
+    const active = nodes.filter(n => !fallbackIds.has(n.id));
+    const nodeMap = new Map(active.map(n => [n.id, n]));
+    const inDegree = new Map(active.map(n => [n.id, 0]));
+    const children = new Map(active.map(n => [n.id, []]));
+
+    active.forEach(n => {
+      (n.depends_on || []).forEach(dep => {
+        if (nodeMap.has(dep)) {
+          inDegree.set(n.id, (inDegree.get(n.id) || 0) + 1);
+          children.get(dep).push(n.id);
+        }
+      });
+    });
+
+    const levels = [];
+    let queue = [...inDegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
+
+    while (queue.length > 0) {
+      levels.push(queue.map(id => nodeMap.get(id)));
+      const next = [];
+      queue.forEach(id => {
+        (children.get(id) || []).forEach(child => {
+          inDegree.set(child, inDegree.get(child) - 1);
+          if (inDegree.get(child) === 0) next.push(child);
+        });
+      });
+      queue = next;
+    }
+
+    // Place fallback nodes in a separate level at the bottom
+    const fallbackNodes = nodes.filter(n => fallbackIds.has(n.id));
+    if (fallbackNodes.length > 0) {
+      levels.push(fallbackNodes);
+    }
+
+    return levels;
+  }
+
+  // -- Build LogicFlow graph data from DAG --
+  function buildGraphData(dag, results) {
+    const nodes = dag.nodes || [];
+    const levels = topologicalLevels(nodes);
+    const fallbackIds = new Set();
+    nodes.forEach(n => { if (n.on_error) fallbackIds.add(n.on_error); });
+
+    const NODE_W = 180;
+    const NODE_H = 50;
+    const GAP_X = 250;
+    const GAP_Y = 100;
+
+    const lfNodes = [];
+    const lfEdges = [];
+
+    // Position nodes by level
+    const totalHeight = Math.max(...levels.map(l => l.length)) * GAP_Y;
+
+    levels.forEach((level, levelIdx) => {
+      const levelHeight = level.length * GAP_Y;
+      const offsetY = (totalHeight - levelHeight) / 2;
+
+      level.forEach((node, nodeIdx) => {
+        const x = 150 + levelIdx * GAP_X;
+        const y = 80 + offsetY + nodeIdx * GAP_Y;
+
+        let fill = '#2563eb';   // blue - normal
+        let stroke = '#3b82f6';
+        let fontColor = '#ffffff';
+
+        if (fallbackIds.has(node.id)) {
+          fill = '#b91c1c';     // red-700 - fallback node
+          stroke = '#ef4444';
+        } else if (node.on_error) {
+          fill = '#d97706';     // amber-600 - has fallback
+          stroke = '#f59e0b';
+        }
+
+        // Override with execution results
+        if (results && results[node.id]) {
+          const r = results[node.id];
+          if (r._skipped) {
+            fill = '#4b5563';   // gray-600
+            stroke = '#6b7280';
+          } else if (r._error) {
+            fill = '#dc2626';   // red-600
+            stroke = '#ef4444';
+          } else {
+            fill = '#16a34a';   // green-600
+            stroke = '#22c55e';
+          }
+        }
+
+        const label = `${node.id}\n(${node.tool})`;
+
+        lfNodes.push({
+          id: node.id,
+          type: 'rect',
+          x,
+          y,
+          text: label,
+          properties: {
+            width: NODE_W,
+            height: NODE_H,
+            style: {
+              fill,
+              stroke,
+              strokeWidth: 2,
+              radius: 8,
+            },
+            textStyle: {
+              color: fontColor,
+              fontSize: 11,
+            },
+          },
+        });
+      });
+    });
+
+    // Build edges from depends_on
+    nodes.forEach(node => {
+      (node.depends_on || []).forEach(dep => {
+        lfEdges.push({
+          type: 'polyline',
+          sourceNodeId: dep,
+          targetNodeId: node.id,
+          properties: {
+            style: {
+              stroke: '#6b7280',
+              strokeWidth: 2,
+            },
+          },
+        });
+      });
+
+      // on_error edges (dashed)
+      if (node.on_error) {
+        lfEdges.push({
+          type: 'polyline',
+          sourceNodeId: node.id,
+          targetNodeId: node.on_error,
+          properties: {
+            style: {
+              stroke: '#f87171',
+              strokeWidth: 1.5,
+              strokeDasharray: '6 3',
+            },
+          },
+        });
+      }
+    });
+
+    return { nodes: lfNodes, edges: lfEdges };
+  }
+
+  // -- Render --
+  function renderDag(data) {
+    const { run_id, dag, results } = data;
+
+    // Update info bar
+    document.getElementById('dag-info').classList.remove('hidden');
+    document.getElementById('info-run').textContent = run_id;
+    document.getElementById('info-desc').textContent = dag.description || '-';
+    document.getElementById('info-nodes').textContent = (dag.nodes || []).length;
+
+    const graphData = buildGraphData(dag, results);
+
+    if (lf) {
+      lf.render(graphData);
+    } else {
+      lf = new LogicFlow({
+        container: document.getElementById('canvas'),
+        grid: { type: 'dot', size: 20, config: { color: '#374151', thickness: 1 } },
+        keyboard: { enabled: true },
+        edgeType: 'polyline',
+        nodeTextEdit: false,
+        edgeTextEdit: false,
+        isSilentMode: true,
+        stopZoomGraph: false,
+        stopScrollGraph: false,
+        adjustEdgeStartAndEnd: true,
+        style: {
+          rect: {
+            width: 180,
+            height: 50,
+            radius: 8,
+          },
+          nodeText: {
+            fontSize: 11,
+            color: '#ffffff',
+            overflowMode: 'ellipsis',
+          },
+          polyline: {
+            stroke: '#6b7280',
+            strokeWidth: 2,
+          },
+          edgeText: {
+            fontSize: 10,
+          },
+        },
+      });
+      lf.render(graphData);
+    }
+
+    lf.fitView(60);
+  }
+
+  // -- API calls --
+  function showError(msg) {
+    const banner = document.getElementById('error-banner');
+    banner.textContent = msg;
+    banner.classList.remove('hidden');
+    setTimeout(() => banner.classList.add('hidden'), 5000);
+  }
+
+  async function loadRuns() {
+    try {
+      const res = await fetch('/api/runs');
+      const data = await res.json();
+      const select = document.getElementById('run-select');
+      select.innerHTML = '';
+
+      if (!data.runs || data.runs.length === 0) {
+        select.innerHTML = '<option value="">No runs found</option>';
+        return;
+      }
+
+      data.runs.forEach((run, i) => {
+        const opt = document.createElement('option');
+        opt.value = run;
+        opt.textContent = run + (i === 0 ? ' (latest)' : '');
+        select.appendChild(opt);
+      });
+
+      loadRun(data.runs[0]);
+    } catch (e) {
+      showError('Failed to load runs: ' + e.message);
+    }
+  }
+
+  async function loadRun(runId) {
+    try {
+      const res = await fetch(`/api/runs/${runId}`);
+      if (!res.ok) {
+        const err = await res.json();
+        showError(err.error || 'Failed to load run');
+        return;
+      }
+      const data = await res.json();
+      renderDag(data);
+    } catch (e) {
+      showError('Failed to load DAG: ' + e.message);
+    }
+  }
+
+  // -- Event listeners --
+  document.getElementById('run-select').addEventListener('change', (e) => {
+    if (e.target.value) loadRun(e.target.value);
+  });
+
+  document.getElementById('btn-refresh').addEventListener('click', loadRuns);
+
+  // -- Init --
+  loadRuns();
+})();
+</script>
+</body>
+</html>
