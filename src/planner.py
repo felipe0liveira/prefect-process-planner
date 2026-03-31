@@ -42,6 +42,11 @@ You MUST return ONLY a valid JSON object (no markdown, no extra text) with this 
 5. "on_error" is optional. If set, it must reference the ID of another node that
    will be executed as a fallback if this node fails. The fallback node must also
    be defined in the nodes list. Fallback nodes stay dormant and only run on error.
+   IMPORTANT: Fallback nodes (nodes referenced by on_error) MUST have an empty
+   "depends_on" list. They are activated exclusively by the on_error mechanism,
+   never by normal dependency flow. Their params are injected at runtime.
+   If a fallback action needs to chain additional steps (e.g. create a post after
+   reporting an error), make those steps depend on the fallback node itself.
 6. When the user asks to "report errors", "log errors", or handle failures,
    use the "report_error" tool as the on_error fallback. Its params (node_id,
    tool, error) are injected automatically at runtime — always set them to
