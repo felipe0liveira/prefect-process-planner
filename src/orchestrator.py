@@ -150,17 +150,22 @@ def run_dag(plan: ExecutionPlan) -> dict[str, Any]:
                     )
                     fb_future = execute_node.submit(fallback_with_context)
                     fb_result = fb_future.result()
-                    results[node_id] = fb_result
+                    results[node_id] = {
+                        "_error": str(exc),
+                        "_fallback": fallback.id,
+                        "_fallback_result": fb_result,
+                    }
                     print(f"  <- Fallback completed: {fallback.id}")
                 else:
                     print(f"  !! {node_id} failed with no fallback: {exc}")
                     results[node_id] = {"_error": str(exc)}
-                    descendants = _collect_descendants(node_id, children)
-                    failed |= descendants
-                    if descendants:
-                        print(
-                            f"     Downstream nodes will be skipped: "
-                            f"{', '.join(sorted(descendants))}"
-                        )
+
+                descendants = _collect_descendants(node_id, children)
+                failed |= descendants
+                if descendants:
+                    print(
+                        f"     Downstream nodes will be skipped: "
+                        f"{', '.join(sorted(descendants))}"
+                    )
 
     return results
