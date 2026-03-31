@@ -54,7 +54,7 @@ def main() -> None:
     print("STEP 2: Executing DAG with Prefect orchestrator")
     print("=" * 60)
 
-    results = run_dag(plan)
+    results = run_dag(plan, run_dir=run_dir)
 
     flow_log = {
         "prompt": user_prompt,

@@ -84,11 +84,12 @@ def unreliable_get_post(post_id: int) -> dict:
 
 
 @task(name="report_error")
-def report_error(node_id: str, tool: str, error: str) -> dict:
-    """Report an error by saving it to a log file in data/."""
+def report_error(node_id: str, tool: str, error: str, run_dir: str | None = None) -> dict:
+    """Report an error by saving it to a log file in the run directory."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    log_path = DATA_DIR / f"{ts}_error.log"
+    target_dir = Path(run_dir) if run_dir else DATA_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    log_path = target_dir / f"{ts}_error.log"
 
     content = (
         f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n"

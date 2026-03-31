@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+from pathlib import Path
 from typing import Any
 
 from prefect import flow, task
@@ -90,7 +91,7 @@ def _build_children_map(plan: ExecutionPlan, exclude: set[str]) -> dict[str, lis
 
 
 @flow(name="dag_orchestrator", log_prints=True)
-def run_dag(plan: ExecutionPlan) -> dict[str, Any]:
+def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
     """Execute an entire DAG plan respecting dependencies and parallelism."""
     node_map = {node.id: node for node in plan.nodes}
     fallback_ids = plan.fallback_node_ids()
@@ -155,6 +156,7 @@ def run_dag(plan: ExecutionPlan) -> dict[str, Any]:
                                 "node_id": node_id,
                                 "tool": node.tool,
                                 "error": str(exc),
+                                **({"run_dir": str(run_dir)} if run_dir else {}),
                             }
                         }
                     )
