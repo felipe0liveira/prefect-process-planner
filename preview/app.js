@@ -109,7 +109,7 @@
           properties: {
             width: NODE_W,
             height: NODE_H,
-            style: { fill, stroke, strokeWidth: 2, radius: 8, fillOpacity: 0.8 },
+            style: { fill, stroke, strokeWidth: 2, radius: 8, fillOpacity: 0.65 },
             textStyle: { color: fontColor, fontSize: 11 },
           },
         });
@@ -122,7 +122,7 @@
           type: 'polyline',
           sourceNodeId: dep,
           targetNodeId: node.id,
-          properties: { style: { stroke: '#6b7280', strokeWidth: 2 } },
+          properties: { style: { stroke: '#9ca3af', strokeWidth: 2 } },
         });
       });
 
@@ -160,7 +160,7 @@
     } else {
       lf = new LogicFlow({
         container: document.getElementById('canvas'),
-        grid: { type: 'dot', size: 20, config: { color: '#374151', thickness: 1 } },
+        grid: { type: 'dot', size: 20, config: { color: '#d1d5db', thickness: 1 } },
         keyboard: { enabled: true },
         edgeType: 'polyline',
         nodeTextEdit: false,
@@ -172,14 +172,14 @@
         style: {
           rect: { width: 180, height: 50, radius: 8 },
           nodeText: { fontSize: 11, color: '#ffffff', overflowMode: 'ellipsis' },
-          polyline: { stroke: '#6b7280', strokeWidth: 2 },
+          polyline: { stroke: '#9ca3af', strokeWidth: 2 },
           edgeText: { fontSize: 12, color: '#dc2626', background: { fill: '#ffffff', stroke: 'transparent' } },
         },
       });
       lf.render(graphData);
     }
 
-    lf.fitView(60);
+    lf.fitView(300);
   }
 
   // -- API calls --
@@ -244,9 +244,9 @@
     viewMode = btn.dataset.view;
     document.querySelectorAll('#view-toggle [data-view]').forEach(b => {
       b.classList.remove('bg-blue-600', 'text-white');
-      b.classList.add('text-gray-400', 'hover:text-gray-200');
+      b.classList.add('text-gray-500', 'hover:text-gray-800');
     });
-    btn.classList.remove('text-gray-400', 'hover:text-gray-200');
+    btn.classList.remove('text-gray-500', 'hover:text-gray-800');
     btn.classList.add('bg-blue-600', 'text-white');
 
     if (currentData) renderDag(currentData);
