@@ -1504,18 +1504,22 @@ name = "poc-prefect-processes"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "google-cloud-aiplatform" },
     { name = "httpx" },
     { name = "prefect" },
     { name = "pydantic" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.135.2" },
     { name = "google-cloud-aiplatform", specifier = ">=1.143.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "prefect", specifier = ">=3.6.24" },
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "uvicorn", specifier = ">=0.42.0" },
 ]
 
 [[package]]

@@ -5,8 +5,10 @@ description = "POC: AI-driven DAG orchestration with Prefect and Gemini 2.5 Flas
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.135.2",
     "google-cloud-aiplatform>=1.143.0",
     "httpx>=0.28.1",
     "prefect>=3.6.24",
     "pydantic>=2.12.5",
+    "uvicorn>=0.42.0",
 ]
