@@ -8,6 +8,8 @@ from prefect.futures import as_completed
 from src.models.dag import ExecutionPlan, Node
 from src.tools.registry import get_tool
 
+_REPORT_TOOLS = frozenset({"report_error", "report_success"})
+
 
 def _topological_levels(
     plan: ExecutionPlan, exclude: set[str] | None = None
@@ -118,16 +120,26 @@ def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
 
         futures = {}
         for node in runnables:
-            submit_node = node
+            extra_params: dict[str, object] = {}
+
             if node.tool == "check_condition":
-                dep_results = {
-                    dep: results[dep]
-                    for dep in node.depends_on
-                    if dep in results
-                }
-                submit_node = node.model_copy(
-                    update={"params": {**node.params, **dep_results}}
+                extra_params.update(
+                    {
+                        dep: results[dep]
+                        for dep in node.depends_on
+                        if dep in results
+                    }
                 )
+
+            if node.tool in _REPORT_TOOLS and run_dir:
+                extra_params["run_dir"] = str(run_dir)
+
+            submit_node = node
+            if extra_params:
+                submit_node = node.model_copy(
+                    update={"params": {**node.params, **extra_params}}
+                )
+
             print(f"  -> Submitting: {node.id} ({node.tool})")
             future = execute_node.submit(submit_node)
             futures[node.id] = future

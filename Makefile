@@ -25,4 +25,4 @@ preview: ## Start local server to visualize DAGs at http://localhost:8080
 # uv run python -m src.main "Busque o usuário 999 e depois liste os posts dele. Se der erro em qualquer passo, reporte o erro"
 # uv run python -m src.main "Busque o post 2 usando o serviço instável, depois busque os comentários desse post, e também busque o usuário 1 em paralelo. Se der erro, reporte o erro"
 # uv run python -m src.main "Liste os posts do usuário 1 e verifique tem algum post. Se tiver, reporte o erro, se nao tiver crie um novo post com a mensagem 'bom dia'"
-# uv run python -m src.main "obtenha o usuario 3 e valide se o nome dele é 'felipe oliveira' e se ele tem algum post. Se sim, reporte o erro e crie um post com a mensagem 'infelizmente tem post ja para o felipe', se nao crie um novo post com a mensagem 'bom dia'"
+# uv run python -m src.main "obtenha o usuario 3 e valide se o nome dele é 'felipe oliveira' e se ele tem algum post. Se sim, reporte o erro e crie um post com a mensagem 'infelizmente tem post ja para o felipe', se nao crie um novo post com a mensagem 'bom dia' e reporte o sucesso"

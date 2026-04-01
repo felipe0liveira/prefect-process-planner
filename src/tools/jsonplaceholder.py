@@ -1,11 +1,7 @@
-from datetime import datetime, timezone
-from pathlib import Path
-
 import httpx
 from prefect import task
 
 BASE_URL = "https://jsonplaceholder.typicode.com"
-DATA_DIR = Path("data")
 
 
 @task(name="get_posts", retries=2, retry_delay_seconds=5)
@@ -83,20 +79,3 @@ def unreliable_get_post(post_id: int) -> dict:
     return response.json()
 
 
-@task(name="report_error")
-def report_error(node_id: str, tool: str, error: str, run_dir: str | None = None) -> dict:
-    """Report an error by saving it to a log file in the run directory."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    target_dir = Path(run_dir) if run_dir else DATA_DIR
-    target_dir.mkdir(parents=True, exist_ok=True)
-    log_path = target_dir / f"{ts}_error.log"
-
-    content = (
-        f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n"
-        f"Node:      {node_id}\n"
-        f"Tool:      {tool}\n"
-        f"Error:     {error}\n"
-    )
-    log_path.write_text(content, encoding="utf-8")
-
-    return {"logged_to": str(log_path), "node_id": node_id, "tool": tool, "error": error}

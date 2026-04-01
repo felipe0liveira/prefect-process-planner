@@ -9,10 +9,10 @@ from src.tools.jsonplaceholder import (
     get_todos,
     get_user,
     get_users,
-    report_error,
     unreliable_get_post,
 )
 from src.tools.logic import check_condition
+from src.tools.report import report_error, report_success
 
 TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     "get_posts": get_posts,
@@ -23,6 +23,7 @@ TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     "create_post": create_post,
     "get_todos": get_todos,
     "report_error": report_error,
+    "report_success": report_success,
     "unreliable_get_post": unreliable_get_post,
     "check_condition": check_condition,
 }
@@ -166,6 +167,27 @@ TOOL_SCHEMAS: list[dict] = [
                 "type": "string",
                 "description": "Error message (injected at runtime).",
                 "required": True,
+            },
+        },
+    },
+    {
+        "name": "report_success",
+        "description": "Report a successful execution by saving a summary to a log file. Use as a final node in the DAG to log that a workflow completed successfully. The parameters node_id and tool are automatically injected by the orchestrator at runtime — set them to empty strings in the plan.",
+        "parameters": {
+            "node_id": {
+                "type": "string",
+                "description": "ID of the node (injected at runtime).",
+                "required": True,
+            },
+            "tool": {
+                "type": "string",
+                "description": "Tool name (injected at runtime).",
+                "required": True,
+            },
+            "summary": {
+                "type": "string",
+                "description": "A short summary of what was accomplished.",
+                "required": False,
             },
         },
     },
