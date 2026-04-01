@@ -128,7 +128,9 @@ TOOL_SCHEMAS: list[dict] = [
             "variables at runtime — use the dependency node IDs as variable names "
             "in the expression. If the condition evaluates to false, raises an error "
             "(use on_error for fallback). "
-            "Supports: len(), comparisons (>, <, ==, !=, >=, <=), 'in', indexing, arithmetic."
+            "Allowed operations: len(), comparisons (>, <, ==, !=, >=, <=), "
+            "'in'/'not in', indexing, basic arithmetic (+, -, *, /, //, %). "
+            "NOT allowed: ** (power), bitwise ops, imports, attribute access."
         ),
         "parameters": {
             "expression": {
