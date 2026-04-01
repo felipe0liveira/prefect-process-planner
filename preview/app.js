@@ -185,6 +185,7 @@
             height: NODE_H,
             style: { fill, stroke, strokeWidth: 2, radius: 8, fillOpacity: 0.65 },
             textStyle: { color: fontColor, fontSize: 11 },
+            nodeData: { tool: node.tool, params: node.params || {} },
           },
         });
       });
@@ -250,6 +251,12 @@
           edgeText: { fontSize: 12, color: '#dc2626', background: { fill: '#ffffff', stroke: 'transparent' } },
         },
       });
+
+      lf.on('node:click', ({ data }) => {
+        showNodeDetail(data.id, data.properties);
+      });
+      lf.on('blank:click', hideNodeDetail);
+
       lf.render(graphData);
     }
 
@@ -304,6 +311,48 @@
     }
   }
 
+  // -- Node detail panel --
+  const detailPanel = document.getElementById('node-detail');
+  const detailTitle = document.getElementById('detail-title');
+  const detailTool = document.getElementById('detail-tool');
+  const detailParams = document.getElementById('detail-params');
+
+  function showNodeDetail(nodeId, properties) {
+    if (viewMode !== 'plan') return;
+
+    const { nodeData } = properties;
+    if (!nodeData) return;
+
+    detailTitle.textContent = nodeId;
+    detailTool.textContent = nodeData.tool;
+
+    const params = nodeData.params;
+    const keys = Object.keys(params);
+
+    if (keys.length === 0) {
+      detailParams.innerHTML = '<p class="text-xs text-gray-400 italic">No params</p>';
+    } else {
+      detailParams.innerHTML = keys.map(key => {
+        const val = typeof params[key] === 'object'
+          ? JSON.stringify(params[key], null, 2)
+          : String(params[key]);
+        return `
+          <div class="flex gap-2 py-1.5 border-b border-gray-50 last:border-0">
+            <span class="text-xs font-medium text-gray-500 shrink-0">${key}:</span>
+            <span class="text-xs font-mono text-gray-800 break-all">${val}</span>
+          </div>`;
+      }).join('');
+    }
+
+    detailPanel.classList.remove('hidden');
+  }
+
+  function hideNodeDetail() {
+    detailPanel.classList.add('hidden');
+  }
+
+  document.getElementById('detail-close').addEventListener('click', hideNodeDetail);
+
   // -- Event listeners --
   document.getElementById('run-select').addEventListener('change', (e) => {
     if (e.target.value) loadRun(e.target.value);
@@ -323,6 +372,7 @@
     btn.classList.remove('text-gray-500', 'hover:text-gray-800');
     btn.classList.add('bg-blue-600', 'text-white');
 
+    hideNodeDetail();
     if (currentData) renderDag(currentData);
   });
 

@@ -59,8 +59,27 @@
   </div>
 
   <!-- Canvas -->
-  <main class="flex-1">
+  <main class="flex-1 relative">
     <div id="canvas" class="border-t border-gray-100 bg-gray-50"></div>
+
+    <!-- Node detail panel -->
+    <div id="node-detail" class="hidden absolute top-4 right-4 w-80 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+      <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <h3 id="detail-title" class="text-sm font-semibold text-gray-800 truncate"></h3>
+        <button id="detail-close" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="px-4 py-2 border-b border-gray-100">
+        <span class="text-xs text-gray-500">Tool: </span>
+        <span id="detail-tool" class="text-xs font-mono text-gray-700"></span>
+      </div>
+      <div id="detail-params" class="px-4 py-3 max-h-64 overflow-y-auto">
+        <p class="text-xs text-gray-400 italic">No params</p>
+      </div>
+    </div>
   </main>
 
   <!-- Error -->
