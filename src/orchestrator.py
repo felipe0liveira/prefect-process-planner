@@ -122,7 +122,7 @@ def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
         for node in runnables:
             extra_params: dict[str, object] = {}
 
-            if node.tool == "check_condition":
+            if node.tool in {"check_condition", "ai_insight"}:
                 extra_params.update(
                     {
                         dep: results[dep]

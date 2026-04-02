@@ -61,6 +61,10 @@ You MUST return ONLY a valid JSON object (no markdown, no extra text) with this 
     - "len(list_posts) > 10" (where "list_posts" is a depends_on node ID)
     - "get_user['name'] == 'Leanne Graham'" (indexing into a dict result)
     Combine with on_error + report_error to handle condition failures.
+11. When the user asks to analyze, summarize, generate insights, or obtain a
+    perception from the results of previous steps, use the "ai_insight" tool.
+    The dependency results are injected automatically — list the nodes whose
+    results you want analyzed in depends_on.
 """
 
 

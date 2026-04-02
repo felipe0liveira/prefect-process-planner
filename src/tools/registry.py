@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
+from src.tools.ai import ai_insight
 from src.tools.jsonplaceholder import (
     create_post,
     get_comments,
@@ -26,6 +27,7 @@ TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     "report_success": report_success,
     "unreliable_get_post": unreliable_get_post,
     "check_condition": check_condition,
+    "ai_insight": ai_insight,
 }
 
 TOOL_SCHEMAS: list[dict] = [
@@ -147,6 +149,25 @@ TOOL_SCHEMAS: list[dict] = [
                 "description": "Error message to raise if the condition is false.",
                 "required": True,
             },
+        },
+    },
+    {
+        "name": "ai_insight",
+        "description": (
+            "Use an AI model to analyze the results of dependency nodes and "
+            "generate insights or perceptions. The results of all depends_on "
+            "nodes are automatically injected as context at runtime. "
+            "Provide a prompt describing what kind of insight or analysis you want."
+        ),
+        "parameters": {
+            "prompt": {
+                "type": "string",
+                "description": (
+                    "Instruction describing what to analyze or what insight to generate "
+                    "from the dependency data. E.g. 'Summarize the main themes in these posts'"
+                ),
+                "required": True,
+            }
         },
     },
     {

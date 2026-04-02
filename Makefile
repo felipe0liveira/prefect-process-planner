@@ -26,3 +26,13 @@ preview: ## Start local server to visualize DAGs at http://localhost:8080
 # uv run python -m src.main "Busque o post 2 usando o serviço instável, depois busque os comentários desse post, e também busque o usuário 1 em paralelo. Se der erro, reporte o erro"
 # uv run python -m src.main "Liste os posts do usuário 1 e verifique tem algum post. Se tiver, reporte o erro, se nao tiver crie um novo post com a mensagem 'bom dia'"
 # uv run python -m src.main "obtenha o usuario 3 e valide se o nome dele é 'felipe oliveira' e se ele tem algum post. Se sim, reporte o erro e crie um post com a mensagem 'infelizmente tem post ja para o felipe', se nao crie um novo post com a mensagem 'bom dia' e reporte o sucesso"
+
+# ---------------------------------------------------------------------------
+# AI Insight Examples
+# ---------------------------------------------------------------------------
+
+# Simple: fetch posts from user 1 and generate an insight about their themes
+# uv run python -m src.main "Busque os posts do usuário 1 e gere um resumo dos principais temas abordados nos posts"
+
+# Complex: fetch user 3, their posts and todos in parallel, then generate an insight crossing all data
+# uv run python -m src.main "Busque o usuário 3, liste os posts e os todos dele em paralelo, e depois gere uma percepção cruzando todas essas informações — analise a produtividade do usuário comparando a quantidade de posts com a taxa de conclusão dos todos"
