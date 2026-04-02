@@ -160,7 +160,10 @@
 
         if (results && results[node.id]) {
           const r = results[node.id];
-          if (r._skipped) {
+          if (r._dry_run_skipped) {
+            fill = '#0891b2';
+            stroke = '#06b6d4';
+          } else if (r._skipped) {
             fill = '#4b5563';
             stroke = '#6b7280';
           } else if (r._error) {
