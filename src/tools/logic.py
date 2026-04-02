@@ -4,6 +4,8 @@ import operator as op
 from prefect import task
 from simpleeval import SimpleEval
 
+from src.tools.decorator import tool
+
 MAX_EXPRESSION_LENGTH = 300
 
 SAFE_OPERATORS: dict[type, object] = {
@@ -38,6 +40,26 @@ def _make_evaluator(names: dict) -> SimpleEval:
     return evaluator
 
 
+@tool(
+    readonly=True,
+    description=(
+        "Evaluate a logical condition against the results of dependency nodes. "
+        "The results of all depends_on nodes are automatically injected as "
+        "variables at runtime — use the dependency node IDs as variable names "
+        "in the expression. If the condition evaluates to false, raises an error "
+        "(use on_error for fallback). "
+        "Allowed operations: len(), comparisons (>, <, ==, !=, >=, <=), "
+        "'in'/'not in', indexing, basic arithmetic (+, -, *, /, //, %). "
+        "NOT allowed: ** (power), bitwise ops, imports, attribute access."
+    ),
+    param_descriptions={
+        "expression": (
+            "Python-like expression to evaluate. Variable names must match "
+            "depends_on node IDs. E.g. 'len(list_posts) <= 10'"
+        ),
+        "error_message": "Error message to raise if the condition is false.",
+    },
+)
 @task(name="check_condition")
 def check_condition(
     expression: str,

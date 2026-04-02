@@ -6,6 +6,7 @@ from prefect import task
 from vertexai.generative_models import GenerativeModel
 
 from src.settings import settings
+from src.tools.decorator import tool
 
 _SYSTEM_PROMPT = """\
 You are a data analyst. You will receive structured data produced by previous \
@@ -18,6 +19,21 @@ Reply in plain text (no JSON, no markdown fences).
 """
 
 
+@tool(
+    readonly=True,
+    description=(
+        "Use an AI model to analyze the results of dependency nodes and "
+        "generate insights or perceptions. The results of all depends_on "
+        "nodes are automatically injected as context at runtime. "
+        "Provide a prompt describing what kind of insight or analysis you want."
+    ),
+    param_descriptions={
+        "prompt": (
+            "Instruction describing what to analyze or what insight to generate "
+            "from the dependency data. E.g. 'Summarize the main themes in these posts'"
+        ),
+    },
+)
 @task(name="ai_insight", retries=1, retry_delay_seconds=5)
 def ai_insight(prompt: str, **context: Any) -> dict:
     """Generate an AI-powered insight from dependency node results.
