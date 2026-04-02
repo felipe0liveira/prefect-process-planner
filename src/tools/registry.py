@@ -33,6 +33,7 @@ TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
 TOOL_SCHEMAS: list[dict] = [
     {
         "name": "get_posts",
+        "readonly": True,
         "description": "List posts from JSONPlaceholder API. Can filter by user ID.",
         "parameters": {
             "user_id": {
@@ -44,6 +45,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "get_post",
+        "readonly": True,
         "description": "Get a single post by its ID.",
         "parameters": {
             "post_id": {
@@ -55,6 +57,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "get_comments",
+        "readonly": True,
         "description": "List all comments for a given post.",
         "parameters": {
             "post_id": {
@@ -66,11 +69,13 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "get_users",
+        "readonly": True,
         "description": "List all users.",
         "parameters": {},
     },
     {
         "name": "get_user",
+        "readonly": True,
         "description": "Get a single user by their ID.",
         "parameters": {
             "user_id": {
@@ -82,6 +87,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "create_post",
+        "readonly": False,
         "description": "Create a new post with a title, body, and user ID.",
         "parameters": {
             "title": {
@@ -103,6 +109,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "get_todos",
+        "readonly": True,
         "description": "List todos from JSONPlaceholder API. Can filter by user ID.",
         "parameters": {
             "user_id": {
@@ -114,6 +121,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "unreliable_get_post",
+        "readonly": True,
         "description": "Get a post by ID, but simulates an unstable service that fails on even post IDs. Use this instead of get_post when you want to test error handling.",
         "parameters": {
             "post_id": {
@@ -125,6 +133,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "check_condition",
+        "readonly": True,
         "description": (
             "Evaluate a logical condition against the results of dependency nodes. "
             "The results of all depends_on nodes are automatically injected as "
@@ -153,6 +162,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "ai_insight",
+        "readonly": True,
         "description": (
             "Use an AI model to analyze the results of dependency nodes and "
             "generate insights or perceptions. The results of all depends_on "
@@ -172,6 +182,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "report_error",
+        "readonly": False,
         "description": "Report an error by saving details to a log file. Use as an on_error fallback. The parameters node_id, tool and error are automatically injected by the orchestrator at runtime — set them to empty strings in the plan.",
         "parameters": {
             "node_id": {
@@ -193,6 +204,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "report_success",
+        "readonly": False,
         "description": "Report a successful execution by saving a summary to a log file. Use as a final node in the DAG to log that a workflow completed successfully. The parameters node_id and tool are automatically injected by the orchestrator at runtime — set them to empty strings in the plan.",
         "parameters": {
             "node_id": {
@@ -213,6 +225,13 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
 ]
+
+_SCHEMA_BY_NAME: dict[str, dict] = {s["name"]: s for s in TOOL_SCHEMAS}
+
+
+def is_readonly(name: str) -> bool:
+    """Check whether a tool is read-only (safe to run in test/dry-run mode)."""
+    return _SCHEMA_BY_NAME[name].get("readonly", True)
 
 
 def get_tool(name: str) -> Callable[..., Any]:

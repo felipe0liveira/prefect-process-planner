@@ -1,4 +1,4 @@
-.PHONY: help setup clean preview
+.PHONY: help setup clean preview plan execute run test readonly
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -12,6 +12,26 @@ clean: ## Remove all saved outputs from data/
 
 preview: ## Start local server to visualize DAGs at http://localhost:8080
 	uv run uvicorn src.server:app --reload --port 8080
+
+plan: ## Generate a DAG without executing — usage: make plan p="your prompt"
+	@test -n "$(p)" || (echo "Error: missing prompt. Usage: make plan p=\"your prompt\"" && exit 1)
+	uv run python -m src.main --plan "$(p)"
+
+execute: ## Execute an existing DAG — usage: make execute d=20260401_143603
+	@test -n "$(d)" || (echo "Error: missing run dir. Usage: make execute d=20260401_143603" && exit 1)
+	uv run python -m src.main --execute "$(d)"
+
+run: ## Generate and execute a DAG — usage: make run p="your prompt"
+	@test -n "$(p)" || (echo "Error: missing prompt. Usage: make run p=\"your prompt\"" && exit 1)
+	uv run python -m src.main "$(p)"
+
+test: ## Test execution (blocks writes) — usage: make test p="your prompt"
+	@test -n "$(p)" || (echo "Error: missing prompt. Usage: make test p=\"your prompt\"" && exit 1)
+	uv run python -m src.main --test "$(p)"
+
+readonly: ## Re-execute an existing DAG in readonly mode — usage: make readonly d=20260401_143603
+	@test -n "$(d)" || (echo "Error: missing run dir. Usage: make readonly d=20260401_143603" && exit 1)
+	uv run python -m src.main --execute "$(d)" --dry-run
 
 # ---------------------------------------------------------------------------
 # Examples

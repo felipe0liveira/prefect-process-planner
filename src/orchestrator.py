@@ -6,7 +6,7 @@ from prefect import flow, task
 from prefect.futures import as_completed
 
 from src.models.dag import ExecutionPlan, Node
-from src.tools.registry import get_tool
+from src.tools.registry import get_tool, is_readonly
 
 _REPORT_TOOLS = frozenset({"report_error", "report_success"})
 
@@ -93,8 +93,19 @@ def _build_children_map(plan: ExecutionPlan, exclude: set[str]) -> dict[str, lis
 
 
 @flow(name="dag_orchestrator", log_prints=True)
-def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
-    """Execute an entire DAG plan respecting dependencies and parallelism."""
+def run_dag(
+    plan: ExecutionPlan,
+    run_dir: Path | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Execute an entire DAG plan respecting dependencies and parallelism.
+
+    When ``dry_run`` is True, write tools (``readonly=False``) are blocked
+    and their downstream descendants are cascade-skipped.
+    """
+    if dry_run:
+        print("\n⚠  DRY-RUN MODE — write operations will be blocked\n")
+
     node_map = {node.id: node for node in plan.nodes}
     fallback_ids = plan.fallback_node_ids()
     levels = _topological_levels(plan, exclude=fallback_ids)
@@ -120,6 +131,24 @@ def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
 
         futures = {}
         for node in runnables:
+            if dry_run and not is_readonly(node.tool):
+                print(
+                    f"  xx Blocked (test mode): {node.id} ({node.tool})"
+                )
+                results[node.id] = {
+                    "_dry_run_skipped": True,
+                    "tool": node.tool,
+                    "params": node.params,
+                }
+                descendants = _collect_descendants(node.id, children)
+                failed |= descendants
+                if descendants:
+                    print(
+                        f"     Downstream nodes will be skipped: "
+                        f"{', '.join(sorted(descendants))}"
+                    )
+                continue
+
             extra_params: dict[str, object] = {}
 
             if node.tool in {"check_condition", "ai_insight"}:
@@ -143,6 +172,9 @@ def run_dag(plan: ExecutionPlan, run_dir: Path | None = None) -> dict[str, Any]:
             print(f"  -> Submitting: {node.id} ({node.tool})")
             future = execute_node.submit(submit_node)
             futures[node.id] = future
+
+        if not futures:
+            continue
 
         for future in as_completed(futures.values()):
             node_id = next(

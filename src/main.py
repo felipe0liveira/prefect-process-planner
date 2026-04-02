@@ -44,16 +44,24 @@ def _generate(user_prompt: str, run_dir: Path) -> ExecutionPlan:
     return plan
 
 
-def _execute(plan: ExecutionPlan, run_dir: Path, user_prompt: str | None = None) -> None:
+def _execute(
+    plan: ExecutionPlan,
+    run_dir: Path,
+    user_prompt: str | None = None,
+    dry_run: bool = False,
+) -> None:
     """Execute a DAG and save results to disk."""
     dag_data = plan.model_dump()
 
     print()
     print("=" * 60)
-    print("Executing DAG with Prefect orchestrator")
+    print(
+        "Executing DAG with Prefect orchestrator"
+        + (" [TEST MODE]" if dry_run else "")
+    )
     print("=" * 60)
 
-    results = run_dag(plan, run_dir=run_dir)
+    results = run_dag(plan, run_dir=run_dir, dry_run=dry_run)
 
     flow_log = {
         "prompt": user_prompt or "(executed from existing dag.json)",
@@ -104,9 +112,20 @@ def _parse_args() -> argparse.Namespace:
         help="execute an existing dag.json from a run directory (name or path)",
     )
     group.add_argument(
+        "--test",
+        metavar="PROMPT",
+        help="generate and execute a DAG in test mode (write operations are blocked)",
+    )
+    group.add_argument(
         "prompt",
         nargs="?",
         help="generate and execute a DAG in one step",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="block write operations (use with --execute for readonly re-runs)",
     )
     return parser.parse_args()
 
@@ -129,7 +148,13 @@ def main() -> None:
             sys.exit(1)
         dag_data = json.loads(dag_path.read_text(encoding="utf-8"))
         plan = ExecutionPlan.model_validate(dag_data)
-        _execute(plan, run_dir)
+        _execute(plan, run_dir, dry_run=args.dry_run)
+
+    elif args.test:
+        user_prompt = args.test
+        run_dir = _build_run_dir()
+        plan = _generate(user_prompt, run_dir)
+        _execute(plan, run_dir, user_prompt, dry_run=True)
 
     else:
         user_prompt = args.prompt
